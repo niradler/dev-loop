@@ -47,7 +47,9 @@ func NewSQLiteStorage(dbPath string) (*SQLiteStorage, error) {
 		finished_at DATETIME,
 		execute_request TEXT,
 		output TEXT,
-		exitcode INTEGER DEFAULT 0
+		exitcode INTEGER DEFAULT 0,
+		incognito BOOLEAN DEFAULT 0,
+		command TEXT
 	);
 	`)
 	if err != nil {
@@ -122,14 +124,14 @@ func (s *SQLiteStorage) ListScripts(offset, limit int) ([]*Script, error) {
 func (s *SQLiteStorage) SaveExecutionHistory(history *ExecutionHistory) error {
 	req, _ := json.Marshal(history.ExecuteRequest)
 	_, err := s.db.Exec(`
-	INSERT INTO history (script_id, executed_at, finished_at, execute_request, output, exitcode)
-	VALUES (?, ?, ?, ?, ?, ?)`,
-		history.ScriptID, history.ExecutedAt, history.FinishedAt, string(req), history.Output, history.ExitCode)
+	INSERT INTO history (script_id, executed_at, finished_at, execute_request, output, exitcode, incognito, command)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		history.ScriptID, history.ExecutedAt, history.FinishedAt, string(req), history.Output, history.ExitCode, history.Incognito, history.Command)
 	return err
 }
 
 func (s *SQLiteStorage) ListExecutionHistory(scriptID string, offset, limit int) ([]*ExecutionHistory, error) {
-	rows, err := s.db.Query(`SELECT id, script_id, executed_at, finished_at, execute_request, output, exitcode FROM history WHERE script_id = ? ORDER BY executed_at DESC LIMIT ? OFFSET ?`, scriptID, limit, offset)
+	rows, err := s.db.Query(`SELECT id, script_id, executed_at, finished_at, execute_request, output, exitcode, incognito, command FROM history WHERE script_id = ? ORDER BY executed_at DESC LIMIT ? OFFSET ?`, scriptID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -139,25 +141,37 @@ func (s *SQLiteStorage) ListExecutionHistory(scriptID string, offset, limit int)
 		var h ExecutionHistory
 		var req string
 		var id int
-		if err := rows.Scan(&id, &h.ScriptID, &h.ExecutedAt, &h.FinishedAt, &req, &h.Output, &h.ExitCode); err != nil {
+		var incognito sql.NullBool
+		var command sql.NullString
+		if err := rows.Scan(&id, &h.ScriptID, &h.ExecutedAt, &h.FinishedAt, &req, &h.Output, &h.ExitCode, &incognito, &command); err != nil {
 			continue
 		}
 		json.Unmarshal([]byte(req), &h.ExecuteRequest)
+		h.Incognito = incognito.Valid && incognito.Bool
+		if command.Valid {
+			h.Command = command.String
+		}
 		histories = append(histories, &h)
 	}
 	return histories, nil
 }
 
 func (s *SQLiteStorage) GetHistoryByID(id string) (*ExecutionHistory, error) {
-	row := s.db.QueryRow(`SELECT id, script_id, executed_at, finished_at, execute_request, output, exitcode FROM history WHERE id = ?`, id)
+	row := s.db.QueryRow(`SELECT id, script_id, executed_at, finished_at, execute_request, output, exitcode, incognito, command FROM history WHERE id = ?`, id)
 	var h ExecutionHistory
 	var req string
 	var hid int
-	err := row.Scan(&hid, &h.ScriptID, &h.ExecutedAt, &h.FinishedAt, &req, &h.Output, &h.ExitCode)
+	var incognito sql.NullBool
+	var command sql.NullString
+	err := row.Scan(&hid, &h.ScriptID, &h.ExecutedAt, &h.FinishedAt, &req, &h.Output, &h.ExitCode, &incognito, &command)
 	if err != nil {
 		return nil, err
 	}
 	json.Unmarshal([]byte(req), &h.ExecuteRequest)
+	h.Incognito = incognito.Valid && incognito.Bool
+	if command.Valid {
+		h.Command = command.String
+	}
 	return &h, nil
 }
 

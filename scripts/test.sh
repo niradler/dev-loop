@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # @name: Cleanup Logs
 # @description: Removes old log files to free up disk space
 # @author: Nir Adler

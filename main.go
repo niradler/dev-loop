@@ -26,6 +26,8 @@ type ExecutionHistory struct {
 	ExecuteRequest ExecuteRequest `json:"execute_request"`
 	Output         string         `json:"output"`
 	ExitCode       int            `json:"exitcode"`
+	Incognito      bool           `json:"incognito"` // new field
+	Command        string         `json:"command"`   // new field
 }
 
 type Input struct {
@@ -247,8 +249,12 @@ func execScriptHandler(c *gin.Context) {
 		exitCode = cmd.ProcessState.ExitCode()
 	}
 
-	if c.Query("incognito") == "true" {
-		maskedArgs := []string{script.Path}
+	incognito := c.Query("incognito") == "true"
+	if incognito {
+		maskedArgs := make([]string, len(req.Args))
+		for i := range req.Args {
+			maskedArgs[i] = "*****"
+		}
 		maskedEnv := make(map[string]string)
 		for k := range req.Env {
 			maskedEnv[k] = "*****"
@@ -265,6 +271,8 @@ func execScriptHandler(c *gin.Context) {
 		ExecuteRequest: req,
 		Output:         output,
 		ExitCode:       exitCode,
+		Incognito:      incognito,   // set new field
+		Command:        req.Command, // set new field
 	})
 }
 
