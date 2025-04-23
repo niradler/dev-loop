@@ -43,7 +43,6 @@ type Script struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Author      string   `json:"author"`
-	Version     string   `json:"version"`
 	Category    string   `json:"category"`
 	Tags        []string `json:"tags"`
 	Inputs      []Input  `json:"inputs"`
@@ -171,8 +170,6 @@ func parseScript(content string) (*Script, error) {
 			script.Description = strings.TrimSpace(strings.TrimPrefix(line, "description:"))
 		} else if strings.HasPrefix(line, "author:") {
 			script.Author = strings.TrimSpace(strings.TrimPrefix(line, "author:"))
-		} else if strings.HasPrefix(line, "version:") {
-			script.Version = strings.TrimSpace(strings.TrimPrefix(line, "version:"))
 		} else if strings.HasPrefix(line, "category:") {
 			script.Category = strings.TrimSpace(strings.TrimPrefix(line, "category:"))
 		} else if strings.HasPrefix(line, "tags:") {
@@ -292,7 +289,6 @@ func listScriptsHandler(c *gin.Context) {
 		Name        string   `json:"name"`
 		Description string   `json:"description"`
 		Author      string   `json:"author"`
-		Version     string   `json:"version"`
 		Category    string   `json:"category"`
 		Tags        []string `json:"tags"`
 		Inputs      []Input  `json:"inputs"`
@@ -305,7 +301,6 @@ func listScriptsHandler(c *gin.Context) {
 			Name:        s.Name,
 			Description: s.Description,
 			Author:      s.Author,
-			Version:     s.Version,
 			Category:    s.Category,
 			Tags:        s.Tags,
 			Inputs:      s.Inputs,
@@ -332,7 +327,6 @@ func getScriptHandler(c *gin.Context) {
 		Name        string   `json:"name"`
 		Description string   `json:"description"`
 		Author      string   `json:"author"`
-		Version     string   `json:"version"`
 		Category    string   `json:"category"`
 		Tags        []string `json:"tags"`
 		Inputs      []Input  `json:"inputs"`
@@ -344,7 +338,6 @@ func getScriptHandler(c *gin.Context) {
 		Name:        script.Name,
 		Description: script.Description,
 		Author:      script.Author,
-		Version:     script.Version,
 		Category:    script.Category,
 		Tags:        script.Tags,
 		Inputs:      script.Inputs,

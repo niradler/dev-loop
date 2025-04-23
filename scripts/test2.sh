@@ -2,7 +2,6 @@
 # @name: Cleanup Logs
 # @description: Removes old log files to free up disk space
 # @author: David Chen
-# @version: 2.0.0
 # @category: Maintenance
 # @tags: ["logs", "cleanup", "maintenance"]
 # @inputs: [

@@ -34,7 +34,6 @@ func NewSQLiteStorage(dbPath string) (*SQLiteStorage, error) {
 		name TEXT,
 		description TEXT,
 		author TEXT,
-		version TEXT,
 		category TEXT,
 		tags TEXT,
 		inputs TEXT,
@@ -62,17 +61,17 @@ func (s *SQLiteStorage) SaveScript(script *Script) error {
 	tags, _ := json.Marshal(script.Tags)
 	inputs, _ := json.Marshal(script.Inputs)
 	_, err := s.db.Exec(`
-	INSERT OR REPLACE INTO scripts (id, name, description, author, version, category, tags, inputs, path)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		script.ID, script.Name, script.Description, script.Author, script.Version, script.Category, string(tags), string(inputs), script.Path)
+	INSERT OR REPLACE INTO scripts (id, name, description, author, category, tags, inputs, path)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		script.ID, script.Name, script.Description, script.Author, script.Category, string(tags), string(inputs), script.Path)
 	return err
 }
 
 func (s *SQLiteStorage) GetScript(id string) (*Script, error) {
-	row := s.db.QueryRow(`SELECT id, name, description, author, version, category, tags, inputs, path FROM scripts WHERE id = ?`, id)
+	row := s.db.QueryRow(`SELECT id, name, description, author, category, tags, inputs, path FROM scripts WHERE id = ?`, id)
 	var script Script
 	var tags, inputs string
-	err := row.Scan(&script.ID, &script.Name, &script.Description, &script.Author, &script.Version, &script.Category, &tags, &inputs, &script.Path)
+	err := row.Scan(&script.ID, &script.Name, &script.Description, &script.Author, &script.Category, &tags, &inputs, &script.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +92,7 @@ func (s *SQLiteStorage) DeleteScript(id string) error {
 }
 
 func (s *SQLiteStorage) ListScripts(offset, limit int) ([]*Script, error) {
-	rows, err := s.db.Query(`SELECT id, name, description, author, version, category, tags, inputs, path FROM scripts LIMIT ? OFFSET ?`, limit, offset)
+	rows, err := s.db.Query(`SELECT id, name, description, author, category, tags, inputs, path FROM scripts LIMIT ? OFFSET ?`, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +101,7 @@ func (s *SQLiteStorage) ListScripts(offset, limit int) ([]*Script, error) {
 	for rows.Next() {
 		var script Script
 		var tags, inputs string
-		if err := rows.Scan(&script.ID, &script.Name, &script.Description, &script.Author, &script.Version, &script.Category, &tags, &inputs, &script.Path); err != nil {
+		if err := rows.Scan(&script.ID, &script.Name, &script.Description, &script.Author, &script.Category, &tags, &inputs, &script.Path); err != nil {
 			continue
 		}
 		if err := json.Unmarshal([]byte(tags), &script.Tags); err != nil {
