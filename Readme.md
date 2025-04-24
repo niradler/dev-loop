@@ -33,7 +33,6 @@ Open your browser at:
 - retry
 - in app edit
 - web hooks like pastebin
-- http calls (curls) keep like script
 - ui api key key
 - stream logs
 - base converter
