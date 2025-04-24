@@ -345,8 +345,6 @@ func parseScript(content string) (*Script, error) {
 	return script, nil
 }
 
-// --- Script execution ---
-
 func execScriptHandler(c *gin.Context) {
 	id := c.Param("id")
 	script, err := storage.GetScript(id)
@@ -366,6 +364,15 @@ func execScriptHandler(c *gin.Context) {
 	args := append([]string{script.Path}, req.Args...)
 	cmd := exec.Command(req.Command, args...)
 	cmd.Env = os.Environ()
+
+	// Load config and add environment variables from config if present
+	cfg, err := loadConfig()
+	if err == nil && cfg != nil && cfg.EnvironmentVariables != nil {
+		for k, v := range cfg.EnvironmentVariables {
+			req.Env[k] = v
+		}
+	}
+
 	for k, v := range req.Env {
 		cmd.Env = append(cmd.Env, k+"="+v)
 	}
@@ -399,6 +406,7 @@ func execScriptHandler(c *gin.Context) {
 	}
 
 	incognito := c.Query("incognito") == "true"
+
 	if incognito {
 		maskedArgs := make([]string, len(req.Args))
 		for i := range req.Args {
