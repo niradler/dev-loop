@@ -20,3 +20,29 @@ Open your browser at:
 - UI (if exists): [http://localhost:8080/public](http://localhost:8080/public)
 
 ---
+
+### TODO:
+
+- add support for more script extension
+- recent scripts runs
+- sort by categories/tags
+- env var per script
+- bundle as desktop app
+- secrets store
+- load test
+- retry
+- in app edit
+- web hooks like pastebin
+- http calls (curls) keep like script
+- ui api key key
+- stream logs
+- base converter
+- json/yaml/viewer
+- share as gist
+- env var from secrets
+- script exit handler, on exit do something
+- run script in the background
+- schedule script
+- notification
+- mcp tools / edit/ debug / mcpo?
+- dev-loop-mcp for interaction
