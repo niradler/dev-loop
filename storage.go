@@ -9,6 +9,7 @@ import (
 
 type Storage interface {
 	SaveScript(script *Script) error
+	ClearScripts() error
 	GetScript(id string) (*Script, error)
 	DeleteScript(id string) error
 	ListScripts(offset, limit int) ([]*Script, error)
@@ -55,6 +56,11 @@ func NewSQLiteStorage(dbPath string) (*SQLiteStorage, error) {
 		return nil, err
 	}
 	return &SQLiteStorage{db: db}, nil
+}
+
+func (s *SQLiteStorage) ClearScripts() error {
+	_, err := s.db.Exec(`DELETE FROM scripts;`)
+	return err
 }
 
 func (s *SQLiteStorage) SaveScript(script *Script) error {
