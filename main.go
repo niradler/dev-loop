@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"io/fs"
 	"log"
 	"net/http"
@@ -235,8 +234,6 @@ func updateConfigHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, cfg)
 }
 
-// --- Script loading ---
-
 func loadScriptsHandler(c *gin.Context) {
 	var req struct {
 		Folders []string `json:"folders"`
@@ -246,7 +243,6 @@ func loadScriptsHandler(c *gin.Context) {
 		return
 	}
 
-	// Load config and merge folders
 	cfg, err := loadConfig()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load config"})
@@ -267,6 +263,7 @@ func loadScriptsHandler(c *gin.Context) {
 	count := 0
 	for _, folder := range allFolders {
 		err := filepath.Walk(folder, func(path string, info fs.FileInfo, err error) error {
+
 			if err != nil || info.IsDir() {
 				return nil
 			}
@@ -274,10 +271,13 @@ func loadScriptsHandler(c *gin.Context) {
 			if err != nil {
 				return nil
 			}
-			script, err := parseScript(string(content))
+
+			script, err := parseScript(path, string(content))
 			if err != nil {
+				log.Printf("parseScript err: %v", err)
 				return nil
 			}
+
 			script.Path = path
 			script.ID = md5Hash(path)
 			storage.SaveScript(script)
@@ -291,7 +291,7 @@ func loadScriptsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Scripts loaded successfully", "count": count})
 }
 
-func parseScript(content string) (*Script, error) {
+func parseScript(path string, content string) (*Script, error) {
 	script := &Script{}
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	var (
@@ -308,7 +308,6 @@ func parseScript(content string) (*Script, error) {
 			inputsLines = append(inputsLines, trimmed)
 			if strings.Contains(trimmed, "]") {
 				inInputsBlock = false
-				// Join and unmarshal
 				inputsStr := strings.Join(inputsLines, "\n")
 				inputsStr = strings.TrimSpace(inputsStr)
 				json.Unmarshal([]byte(inputsStr), &script.Inputs)
@@ -340,7 +339,7 @@ func parseScript(content string) (*Script, error) {
 		}
 	}
 	if script.Name == "" {
-		return nil, errors.New("missing name")
+		script.Name = filepath.Base(path)
 	}
 	return script, nil
 }
@@ -358,12 +357,7 @@ func execScriptHandler(c *gin.Context) {
 		return
 	}
 
-	if req.Command == "" {
-		req.Command = "sh"
-	}
 	args := append([]string{script.Path}, req.Args...)
-	cmd := exec.Command(req.Command, args...)
-	cmd.Env = os.Environ()
 
 	// Load config and add environment variables from config if present
 	cfg, err := loadConfig()
@@ -372,6 +366,13 @@ func execScriptHandler(c *gin.Context) {
 			req.Env[k] = v
 		}
 	}
+
+	if req.Command == "" {
+		req.Command = cfg.ExtensionCommands[filepath.Ext(script.Path)]
+	}
+
+	cmd := exec.Command(req.Command, args...)
+	cmd.Env = os.Environ()
 
 	for k, v := range req.Env {
 		cmd.Env = append(cmd.Env, k+"="+v)

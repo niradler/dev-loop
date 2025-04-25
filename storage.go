@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -64,6 +65,7 @@ func (s *SQLiteStorage) ClearScripts() error {
 }
 
 func (s *SQLiteStorage) SaveScript(script *Script) error {
+	fmt.Printf("Saving script: %s", script.Name)
 	tags, _ := json.Marshal(script.Tags)
 	inputs, _ := json.Marshal(script.Inputs)
 	_, err := s.db.Exec(`
