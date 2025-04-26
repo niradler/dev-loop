@@ -24,7 +24,6 @@ Open your browser at:
 ### TODO:
 
 - bundle as desktop app
-- ui api key key 
 - stream logs
   
 - env var per script

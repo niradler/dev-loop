@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -56,6 +57,9 @@ func apiKeyMiddleware() gin.HandlerFunc {
 }
 
 func main() {
+	// Load environment variables from .env file if present
+	_ = godotenv.Load()
+
 	var err error
 	storage, err = NewSQLiteStorage("devloop.db")
 	if err != nil {
@@ -63,9 +67,6 @@ func main() {
 	}
 
 	r := gin.Default()
-
-	// Add API key middleware before all other routes
-	r.Use(apiKeyMiddleware())
 
 	// Add CORS middleware
 	r.Use(func(c *gin.Context) {
@@ -78,6 +79,8 @@ func main() {
 		}
 		c.Next()
 	})
+
+	r.Use(apiKeyMiddleware())
 
 	// Serve static files
 	r.Static("/public", "./public")
