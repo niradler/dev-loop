@@ -13,5 +13,9 @@ func listCategoriesHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
 		return
 	}
+
+	if counts == nil {
+		counts = []CategoryCount{}
+	}
 	c.JSON(http.StatusOK, counts)
 }

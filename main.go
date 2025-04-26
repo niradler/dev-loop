@@ -80,13 +80,12 @@ func main() {
 		c.Next()
 	})
 
-	r.Use(apiKeyMiddleware())
-
-	// Serve static files
 	r.Static("/public", "./public")
 	r.GET("/", func(c *gin.Context) {
-		c.File("./public/index.html")
+		c.File("./dist/index.html")
 	})
+
+	r.Use(apiKeyMiddleware())
 
 	// API endpoints
 	r.POST("/api/actions/scripts/load", loadScriptsHandler)
