@@ -23,18 +23,17 @@ Open your browser at:
 
 ### TODO:
 
-- add support for more script extension
-- recent scripts runs
-- sort by categories/tags
-- env var per script
 - bundle as desktop app
+- ui api key key 
+- stream logs
+  
+- env var per script
 - secrets store
 - load test
 - retry
 - in app edit
 - web hooks like pastebin
-- ui api key key
-- stream logs
+
 - base converter
 - json/yaml/viewer
 - share as gist

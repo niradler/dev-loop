@@ -1,7 +1,7 @@
 #!/bin/bash
 # @name: Cleanup Logs
 # @description: Removes old log files to free up disk space
-# @author: David Chen
+# @author: David Bool
 # @category: Maintenance
 # @tags: ["logs", "cleanup", "maintenance"]
 # @inputs: [
