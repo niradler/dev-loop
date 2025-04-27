@@ -80,11 +80,6 @@ func main() {
 		c.Next()
 	})
 
-	r.Static("/public", "./public")
-	r.GET("/", func(c *gin.Context) {
-		c.File("./dist/index.html")
-	})
-
 	r.Use(apiKeyMiddleware())
 
 	// API endpoints
@@ -106,7 +101,11 @@ func main() {
 	r.GET("/api/history/scripts/recent", recentHistoryScriptsHandler)
 	r.GET("/api/categories", listCategoriesHandler)
 
-	r.Run("localhost:8081")
+	port := os.Getenv("DEV_LOOP_PORT")
+	if port == "" {
+		port = "8081"
+	}
+	r.Run("localhost:" + port)
 }
 
 // --- Config persistence ---
