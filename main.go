@@ -164,6 +164,8 @@ func defaultConfig() *Config {
 			".sh": "sh",
 			".js": "node",
 			".ts": "ts-node",
+			".go": "go run",
+			".zx": "zx",
 		},
 	}
 }

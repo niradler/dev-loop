@@ -74,6 +74,10 @@ func loadScriptsHandler(c *gin.Context) {
 			if err != nil || info.IsDir() {
 				return nil
 			}
+			ext := filepath.Ext(path)
+			if _, ok := cfg.ExtensionCommands[ext]; !ok {
+				return nil
+			}
 			content, err := os.ReadFile(path)
 			if err != nil {
 				return nil
@@ -111,9 +115,9 @@ func parseScript(path string, content string) (*Script, error) {
 
 	// Determine comment prefix based on file extension
 	switch filepath.Ext(path) {
-	case ".py", ".go":
+	case ".py":
 		commentPrefix = "# @"
-	case ".js", ".ts":
+	case ".js", ".ts", ".go", "zx":
 		commentPrefix = "// @"
 	case ".sh", ".bash", ".zsh":
 		commentPrefix = "# @"

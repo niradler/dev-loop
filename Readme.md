@@ -23,9 +23,7 @@ Open your browser at:
 
 ### TODO:
 
-- bundle as desktop app
-- stream logs
-  
+- stream logs  
 - env var per script
 - secrets store
 - load test
