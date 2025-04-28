@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApiKeyModal } from "@/components/Auth";
@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter , Routes, Route, useNavigate } from "react-router-dom";
 import { ScriptsProvider } from "@/hooks/ScriptsContext";
 import { setNavigate } from "@/services/navigationService";
+import { apiService } from "@/services/apiService";
 import Index from "./pages/Index";
 import ScriptDetail from "./pages/ScriptDetail";
 import Settings from "./pages/Settings";
@@ -24,7 +25,7 @@ const queryClient = new QueryClient({
 
 function NavigationInitializer() {
   const navigate = useNavigate();
-  React.useEffect(() => {
+  useEffect(() => {
     setNavigate(navigate);
   }, [navigate]);
   return null;
@@ -45,6 +46,15 @@ function AppRoutes() {
 }
 
 function App() {
+  useEffect( () => {
+    (async()=>{
+      try {
+        await apiService.reloadScripts()
+      } catch (error) {
+        console.error("Error reloading scripts:", error);
+      }
+    })()
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <ScriptsProvider>
