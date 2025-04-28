@@ -27,10 +27,17 @@ var (
 
 func getConfigFolderPath() string {
 	home, err := os.UserHomeDir()
-	if err != nil {
-		return "~/.dev-loop"
+	configFolderPath := "~/.dev-loop"
+	if err == nil {
+		configFolderPath = filepath.Join(home, ".dev-loop")
 	}
-	return filepath.Join(home, ".dev-loop")
+
+	if _, err := os.Stat(configFolderPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(configFolderPath, 0755); err != nil {
+			log.Printf("Failed to create config folder: %v", err)
+		}
+	}
+	return configFolderPath
 }
 
 func getDBPath() string {
