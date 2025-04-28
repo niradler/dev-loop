@@ -1,43 +1,28 @@
-# 🧠 Developer Loop
+# DevLoop 🚀
 
-A simple REST API built with Go and Gin to manage, store, and execute script snippets (e.g., Bash or Shell scripts). Supports metadata, parameterized execution, and history tracking. Public UI, and Swagger is provided for documentation.
+> Manage. Run. Track your developer scripts easily.
 
----
+DevLoop is a desktop and web app for managing and executing scripts across multiple languages, with an intuitive UI to configure script arguments dynamically.
 
-## 🚀 Features
+## ✨ Features
 
-- Store and retrieve script metadata
-- Execute `.sh` or `.bash` scripts with dynamic environment variables
-- Auto-detects `/bin/bash` or `/bin/sh` based on script file extension
-- Stores execution history
-- Public UI served from `/public`
-- Auto-generated Swagger docs available at `/swagger/index.html`
+- Add folders with your scripts (JS, TS, SH, PY, GO supported).
+- Use metadata to configure script parameters and descriptions.
+- Execute scripts with configurable arguments.
+- Track execution history, success/failure, and rerun scripts with the same parameters.
+- Sort and search scripts by category, tags, or name.
+- Runs as Desktop App (Electron) or as Web App.
 
----
+## 📂 Script Metadata Example
 
-Open your browser at:  
-- Swagger: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)  
-- UI (if exists): [http://localhost:8080/public](http://localhost:8080/public)
-
----
-
-### TODO:
-
-- stream logs  
-- env var per script
-- secrets store
-- load test
-- retry
-- in app edit
-- web hooks like pastebin
-
-- base converter
-- json/yaml/viewer
-- share as gist
-- env var from secrets
-- script exit handler, on exit do something
-- run script in the background
-- schedule script
-- notification
-- mcp tools / edit/ debug / mcpo?
-- dev-loop-mcp for interaction
+```js
+// @name: Hello
+// @description: A simple script that prints "Hello, {name}" to the console
+// @author: Nir Adler
+// @category: Testing
+// @tags: ["hello", "test"]
+// @inputs: [
+//   { "name": "name", "description": "Your name", "type": "string", "default": "" }
+// ]
+console.log("Hello:", process.argv.slice(2)[0]);
+```
