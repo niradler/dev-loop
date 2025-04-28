@@ -1,0 +1,89 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 215 20.2% 65.1%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 175 84% 32%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 224 71% 4%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 175 84% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 224.3 76.3% 48%;
+
+    --code-background: 220 13% 18%;
+    --code-foreground: 210 40% 98%;
+
+    --terminal-background: 220 13% 18%;
+    --terminal-foreground: 210 40% 98%;
+    --terminal-success: 142 76% 36%;
+    --terminal-error: 0 84% 60%;
+    --terminal-warning: 38 92% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground min-h-screen;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  .terminal-output {
+    @apply font-mono text-sm whitespace-pre-wrap bg-terminal text-terminal-foreground p-4 rounded-md overflow-auto;
+    max-height: 500px;
+  }
+  
+  .terminal-output .success {
+    @apply text-terminal-success;
+  }
+  
+  .terminal-output .error {
+    @apply text-terminal-error;
+  }
+  
+  .terminal-output .warning {
+    @apply text-terminal-warning;
+  }
+  
+  .terminal-cursor::after {
+    content: '|';
+    @apply animate-cursor-blink;
+  }
+}
