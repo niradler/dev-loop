@@ -26,3 +26,7 @@ DevLoop is a desktop and web app for managing and executing scripts across multi
 // ]
 console.log("Hello:", process.argv.slice(2)[0]);
 ```
+
+## 🎥 Demo
+
+![DevLoop Demo](devloop-demo.gif)

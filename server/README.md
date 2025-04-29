@@ -23,6 +23,7 @@ Open your browser at:
 
 ### TODO:
 
+- create new script in the ui
 - stream logs  
 - env var per script
 - secrets store
