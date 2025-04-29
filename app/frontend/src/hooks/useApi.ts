@@ -60,6 +60,7 @@ export const useReloadScripts = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['scripts'] });
             queryClient.invalidateQueries({ queryKey: ['recentScripts'] });
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
         },
     });
 };
@@ -81,6 +82,30 @@ export const useExecuteScript = (scriptId: string) => {
             apiService.executeScript(scriptId, inputs, isIncognito),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['scriptExecutions', scriptId] });
+        },
+    });
+};
+
+export const useDeleteScript = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, removeFile }: { id: string; removeFile?: boolean }) =>
+            apiService.deleteScript(id, removeFile),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['scripts'] });
+        },
+    });
+};
+
+export const useDeleteHistory = (scriptId?: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => apiService.deleteHistory(id),
+        onSuccess: () => {
+            if (scriptId) {
+                queryClient.invalidateQueries({ queryKey: ['scriptExecutions', scriptId] });
+            }
+            queryClient.invalidateQueries({ queryKey: ['recentScripts'] });
         },
     });
 };

@@ -3,18 +3,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScriptExecution } from "@/types/script";
 import { formatDistanceToNow, format } from "date-fns";
 import { Terminal } from "@/components/ui/terminal";
-import { AlertCircle, CheckCircle, Clock, PlayCircle, EyeOff } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, PlayCircle, EyeOff, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { useDeleteHistory } from "@/hooks/useApi";
+import { useToast } from "@/hooks/use-toast";
 
 interface ScriptExecutionHistoryProps {
   executions: ScriptExecution[];
   isLoading?: boolean;
   onRerun: (execution: ScriptExecution) => void;
+  scriptId?: string;
 }
 
-export function ScriptExecutionHistory({ executions, isLoading, onRerun }: ScriptExecutionHistoryProps) {
+export function ScriptExecutionHistory({ executions, isLoading, onRerun, scriptId }: ScriptExecutionHistoryProps) {
+  const { toast } = useToast();
+  const { mutateAsync: deleteHistory } = useDeleteHistory(scriptId);
+
+  const handleDeleteHistory = async (id: string) => {
+    try {
+      await deleteHistory(id);
+      toast({
+        title: 'History entry deleted successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to delete history entry',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -152,8 +173,8 @@ export function ScriptExecutionHistory({ executions, isLoading, onRerun }: Scrip
                     </Terminal>
                   </div>
                   
-                  {!execution.incognito && (
-                    <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
+                    {!execution.incognito && (
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -162,8 +183,16 @@ export function ScriptExecutionHistory({ executions, isLoading, onRerun }: Scrip
                         <PlayCircle className="h-4 w-4 mr-1" />
                         Rerun with same parameters
                       </Button>
-                    </div>
-                  )}
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteHistory(execution.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>

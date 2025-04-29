@@ -2,6 +2,8 @@ package server
 
 import (
 	"bufio"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"io/fs"
 	"log"
@@ -14,6 +16,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // --- Script Types ---
@@ -51,7 +54,7 @@ func loadScriptsHandler(c *gin.Context) {
 		return
 	}
 
-	cfg, err := loadConfig()
+	cfg, err := LoadConfig()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load config"})
 		return
@@ -87,12 +90,10 @@ func loadScriptsHandler(c *gin.Context) {
 				log.Printf("parseScript err: %v", err)
 				return nil
 			}
-			script.Path = path
 			if script.Category == "" {
 				script.Category = "uncategorized"
 			}
 
-			script.ID = md5Hash(path)
 			storage.SaveScript(script)
 			count++
 			return nil
@@ -105,7 +106,7 @@ func loadScriptsHandler(c *gin.Context) {
 }
 
 func parseScript(path string, content string) (*Script, error) {
-	script := &Script{}
+	script := &Script{Path: path, ID: md5Hash(path)}
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	var (
 		inInputsBlock bool
@@ -117,7 +118,7 @@ func parseScript(path string, content string) (*Script, error) {
 	switch filepath.Ext(path) {
 	case ".py":
 		commentPrefix = "# @"
-	case ".js", ".ts", ".go", "zx":
+	case ".js", ".ts", ".go", ".zx":
 		commentPrefix = "// @"
 	case ".sh", ".bash", ".zsh":
 		commentPrefix = "# @"
@@ -168,6 +169,7 @@ func parseScript(path string, content string) (*Script, error) {
 	if script.Name == "" {
 		script.Name = filepath.Base(path)
 	}
+
 	return script, nil
 }
 
@@ -189,7 +191,7 @@ func execScriptHandler(c *gin.Context) {
 	args := append([]string{script.Path}, req.Args...)
 
 	// Load config and add environment variables from config if present
-	cfg, err := loadConfig()
+	cfg, err := LoadConfig()
 	if err == nil && cfg != nil && cfg.EnvironmentVariables != nil {
 		for k, v := range cfg.EnvironmentVariables {
 			req.Env[k] = v
@@ -202,7 +204,9 @@ func execScriptHandler(c *gin.Context) {
 
 	log.Printf("execScriptHandler: running command: %s %s", req.Command, strings.Join(args, " "))
 
-	cmd := exec.Command(req.Command, args...)
+	// Split the command into parts if it contains spaces
+	commandParts := strings.Fields(req.Command)
+	cmd := exec.Command(commandParts[0], append(commandParts[1:], args...)...)
 	cmd.Env = os.Environ()
 
 	for k, v := range req.Env {
@@ -254,14 +258,15 @@ func execScriptHandler(c *gin.Context) {
 	}
 
 	storage.SaveExecutionHistory(&ExecutionHistory{
+		ID:             uuid.New().String(),
 		ScriptID:       id,
 		ExecutedAt:     executedAt,
 		FinishedAt:     time.Now(),
 		ExecuteRequest: req,
 		Output:         output,
 		ExitCode:       exitCode,
-		Incognito:      incognito,   // set new field
-		Command:        req.Command, // set new field
+		Incognito:      incognito,
+		Command:        req.Command,
 	})
 }
 
@@ -378,12 +383,18 @@ func openScriptHandler(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
-	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "code"
+	cfg, err := LoadConfig()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load config"})
+		return
 	}
 	go func() {
-		exec.Command(editor, script.Path).Run()
+		exec.Command(cfg.Editor, script.Path).Run()
 	}()
 	c.JSON(http.StatusOK, gin.H{"message": "Script opened in editor"})
+}
+
+func md5Hash(text string) string {
+	hash := md5.Sum([]byte(text))
+	return hex.EncodeToString(hash[:])
 }
