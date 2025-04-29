@@ -49,7 +49,7 @@ func NewSQLiteStorage(dbPath string) (*SQLiteStorage, error) {
 		path TEXT
 	);
 	CREATE TABLE IF NOT EXISTS history (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id TEXT PRIMARY KEY,
 		script_id TEXT,
 		executed_at DATETIME,
 		finished_at DATETIME,
@@ -159,9 +159,9 @@ func (s *SQLiteStorage) ListScripts(offset, limit int, search, category, tag str
 func (s *SQLiteStorage) SaveExecutionHistory(history *ExecutionHistory) error {
 	req, _ := json.Marshal(history.ExecuteRequest)
 	_, err := s.db.Exec(`
-	INSERT INTO history (script_id, executed_at, finished_at, execute_request, output, exitcode, incognito, command)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		history.ScriptID, history.ExecutedAt, history.FinishedAt, string(req), history.Output, history.ExitCode, history.Incognito, history.Command)
+	INSERT INTO history (id, script_id, executed_at, finished_at, execute_request, output, exitcode, incognito, command)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		history.ID, history.ScriptID, history.ExecutedAt, history.FinishedAt, string(req), history.Output, history.ExitCode, history.Incognito, history.Command)
 	return err
 }
 
@@ -175,10 +175,9 @@ func (s *SQLiteStorage) ListExecutionHistory(scriptID string, offset, limit int)
 	for rows.Next() {
 		var h ExecutionHistory
 		var req string
-		var id int
 		var incognito sql.NullBool
 		var command sql.NullString
-		if err := rows.Scan(&id, &h.ScriptID, &h.ExecutedAt, &h.FinishedAt, &req, &h.Output, &h.ExitCode, &incognito, &command); err != nil {
+		if err := rows.Scan(&h.ID, &h.ScriptID, &h.ExecutedAt, &h.FinishedAt, &req, &h.Output, &h.ExitCode, &incognito, &command); err != nil {
 			continue
 		}
 		json.Unmarshal([]byte(req), &h.ExecuteRequest)
@@ -195,10 +194,9 @@ func (s *SQLiteStorage) GetHistoryByID(id string) (*ExecutionHistory, error) {
 	row := s.db.QueryRow(`SELECT id, script_id, executed_at, finished_at, execute_request, output, exitcode, incognito, command FROM history WHERE id = ?`, id)
 	var h ExecutionHistory
 	var req string
-	var hid int
 	var incognito sql.NullBool
 	var command sql.NullString
-	err := row.Scan(&hid, &h.ScriptID, &h.ExecutedAt, &h.FinishedAt, &req, &h.Output, &h.ExitCode, &incognito, &command)
+	err := row.Scan(&h.ID, &h.ScriptID, &h.ExecutedAt, &h.FinishedAt, &req, &h.Output, &h.ExitCode, &incognito, &command)
 	if err != nil {
 		return nil, err
 	}

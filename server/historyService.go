@@ -9,6 +9,7 @@ import (
 )
 
 type ExecutionHistory struct {
+	ID             string         `json:"id"`
 	ScriptID       string         `json:"script_id"`
 	ExecutedAt     time.Time      `json:"executed_at"`
 	FinishedAt     time.Time      `json:"finished_at"`

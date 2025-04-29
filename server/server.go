@@ -1,9 +1,6 @@
 package server
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -14,16 +11,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Config struct {
-	ScriptFolders        []string          `json:"scriptFolders"`
-	ExtensionCommands    map[string]string `json:"extensionCommands"`
-	EnvironmentVariables map[string]string `json:"environmentVariables,omitempty"`
-}
-
-var (
-	storage     Storage
-	configCache *Config
-)
+var storage Storage
 
 func getConfigFolderPath() string {
 	home, err := os.UserHomeDir()
@@ -44,13 +32,19 @@ func getDBPath() string {
 	return filepath.Join(getConfigFolderPath(), "devloop.db")
 }
 
-func getConfigFilePath() string {
-	return filepath.Join(getConfigFolderPath(), "config.json")
-}
-
 // --- API Key Middleware ---
 func apiKeyMiddleware() gin.HandlerFunc {
+	cfg, err := LoadConfig()
+	if err != nil {
+		log.Printf("Failed to load config: %v", err)
+		return func(c *gin.Context) {
+			c.Next()
+		}
+	}
 	apiKey := os.Getenv("DEV_LOOP_API_KEY")
+	if apiKey == "" {
+		apiKey = cfg.APIKey
+	}
 	if apiKey == "" {
 		return func(c *gin.Context) {
 			c.Next()
@@ -121,100 +115,4 @@ func StartServer() {
 		port = "8997"
 	}
 	r.Run("localhost:" + port)
-}
-
-// --- Config persistence ---
-
-func loadConfig() (*Config, error) {
-	if configCache != nil {
-		return configCache, nil
-	}
-	f, err := os.Open(getConfigFilePath())
-	if err != nil {
-		if os.IsNotExist(err) {
-			configCache = defaultConfig()
-			return configCache, nil
-		}
-		return nil, err
-	}
-	defer f.Close()
-	var cfg Config
-	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
-		return nil, err
-	}
-	if cfg.ScriptFolders == nil || len(cfg.ScriptFolders) == 0 {
-		cfg.ScriptFolders = defaultConfig().ScriptFolders
-	}
-	if cfg.ExtensionCommands == nil || len(cfg.ExtensionCommands) == 0 {
-		cfg.ExtensionCommands = defaultConfig().ExtensionCommands
-	}
-	configCache = &cfg
-	return configCache, nil
-}
-
-func saveConfig(cfg *Config) error {
-	configPath := getConfigFilePath()
-	dir := filepath.Dir(configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-	f, err := os.Create(configPath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	err = json.NewEncoder(f).Encode(cfg)
-	if err != nil {
-		return err
-	}
-	configCache = cfg // update in-memory config
-	return nil
-}
-
-func defaultConfig() *Config {
-	return &Config{
-		ScriptFolders: []string{"~/.dev-loop/scripts"},
-		ExtensionCommands: map[string]string{
-			".py": "python",
-			".sh": "sh",
-			".js": "node",
-			".ts": "ts-node",
-			".zx": "zx",
-		},
-	}
-}
-
-func getConfigHandler(c *gin.Context) {
-	cfg, err := loadConfig()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load config"})
-		return
-	}
-	c.JSON(http.StatusOK, cfg)
-}
-
-func updateConfigHandler(c *gin.Context) {
-	var cfg Config
-	if err := c.ShouldBindJSON(&cfg); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid config"})
-		return
-	}
-	if cfg.ScriptFolders == nil || len(cfg.ScriptFolders) == 0 {
-		cfg.ScriptFolders = defaultConfig().ScriptFolders
-	}
-	if cfg.ExtensionCommands == nil || len(cfg.ExtensionCommands) == 0 {
-		cfg.ExtensionCommands = defaultConfig().ExtensionCommands
-	}
-	if err := saveConfig(&cfg); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save config"})
-		return
-	}
-	c.JSON(http.StatusOK, cfg)
-}
-
-// --- Utility ---
-
-func md5Hash(text string) string {
-	hash := md5.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
 }

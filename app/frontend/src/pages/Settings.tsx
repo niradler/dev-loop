@@ -247,50 +247,67 @@ const Settings = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="folders">
+        <Tabs defaultValue="general">
           <TabsList>
-            <TabsTrigger value="folders">Script Folders</TabsTrigger>
+            <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="extensions">Extension Commands</TabsTrigger>
             <TabsTrigger value="env">Environment Variables</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="folders">
+          <TabsContent value="general">
             <Card>
               <CardHeader>
-                <CardTitle>Script Folders</CardTitle>
+                <CardTitle>General Settings</CardTitle>
                 <CardDescription>
-                  Add or remove folders where your scripts are located
+                  Configure general application settings
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter folder path"
-                      value={newFolder}
-                      onChange={(e) => setNewFolder(e.target.value)}
-                    />
-                    <Button onClick={handleAddFolder}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Folder
-                    </Button>
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="editor">Default Editor</Label>
+                      <Input
+                        id="editor"
+                        placeholder="Enter default editor command"
+                        value={config.editor || ''}
+                        onChange={(e) => updateConfig({
+                          ...config,
+                          editor: e.target.value
+                        })}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    {config.scriptFolders.map((folder) => (
-                      <div key={folder} className="flex items-center justify-between p-2 border rounded">
-                        <div className="flex items-center gap-2">
-                          <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-mono">{folder}</span>
+                  <Separator />
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter folder path"
+                        value={newFolder}
+                        onChange={(e) => setNewFolder(e.target.value)}
+                      />
+                      <Button onClick={handleAddFolder}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Folder
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {config.scriptFolders.map((folder) => (
+                        <div key={folder} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-2">
+                            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-mono">{folder}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveFolder(folder)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveFolder(folder)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CardContent>

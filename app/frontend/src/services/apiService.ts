@@ -16,6 +16,7 @@ interface ApiScriptResponse {
 }
 
 interface ApiExecutionResponse {
+  id: string;
   executed_at: string;
   script_id: string;
   finished_at?: string;
@@ -151,7 +152,7 @@ export const apiService = {
   getExecutionsByScriptId: async (scriptId: string): Promise<ScriptExecution[]> => {
     const { data } = await api.get<ApiExecutionResponse[]>(`/history/scripts/${scriptId}`);
     return data.map((e) => ({
-      id: e.executed_at,
+      id: e.id,
       scriptId: e.script_id,
       timestamp: e.executed_at,
       command: e.execute_request.command,
@@ -201,5 +202,13 @@ export const apiService = {
   getCategories: async (): Promise<CategoryResponse[]> => {
     const { data } = await api.get<CategoryResponse[]>('/categories');
     return data;
+  },
+
+  deleteScript: async (id: string, removeFile: boolean = false): Promise<void> => {
+    await api.delete(`/scripts/${id}${removeFile ? '?rm=true' : ''}`);
+  },
+
+  deleteHistory: async (id: string): Promise<void> => {
+    await api.delete(`/history/${id}`);
   }
 };

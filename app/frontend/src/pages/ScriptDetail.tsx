@@ -4,14 +4,15 @@ import { AppLayout } from "@/components/AppLayout";
 import { ScriptExecutionForm } from "@/components/ScriptExecutionForm";
 import { ScriptExecutionHistory } from "@/components/ScriptExecutionHistory";
 import { ScriptCodeViewer } from "@/components/ScriptCodeViewer";
+import { DeleteScriptModal } from "@/components/DeleteScriptModal";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Code, Terminal as TerminalIcon, PlayCircle, EyeOff } from "lucide-react";
+import { ArrowLeft, Star, Code, Terminal as TerminalIcon, PlayCircle, EyeOff, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Terminal } from "@/components/ui/terminal";
 import { ScriptExecutionInput, ScriptExecution, Script } from "@/types/script";
-import { useScript, useScriptExecutions, useExecuteScript } from "@/hooks/useApi";
+import { useScript, useScriptExecutions, useExecuteScript, useDeleteScript } from "@/hooks/useApi";
 import { useToast } from "@/hooks/use-toast";
 
 const ScriptDetail = () => {
@@ -21,10 +22,12 @@ const ScriptDetail = () => {
   const [activeTab, setActiveTab] = useState("run");
   const [isExecuting, setIsExecuting] = useState(false);
   const [currentExecutionOutput, setCurrentExecutionOutput] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { data: script, isLoading: scriptLoading, error: scriptError } = useScript(id || "");
   const { data: executions = [], isLoading: executionsLoading } = useScriptExecutions(id || "");
   const { mutateAsync: executeScript } = useExecuteScript(id || "");
+  const { mutateAsync: deleteScript } = useDeleteScript();
 
   const handleExecute = async (inputs: ScriptExecutionInput[], isIncognito: boolean) => {
     setIsExecuting(true);
@@ -52,6 +55,22 @@ const ScriptDetail = () => {
   const handleRerun = async (execution: ScriptExecution) => {
     const filteredInputs = execution.inputs.slice(1);
     handleExecute(filteredInputs, execution.incognito);
+  };
+
+  const handleDeleteScript = async (removeFile: boolean) => {
+    try {
+      await deleteScript({ id: id!, removeFile });
+      toast({
+        title: 'Script deleted successfully',
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: 'Failed to delete script',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (scriptLoading) {
@@ -94,6 +113,12 @@ const ScriptDetail = () => {
           <h1 className="text-2xl font-bold tracking-tight">
             {script.name}
           </h1>
+          <div className="ml-auto flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
         </div>
         
         <div className="flex flex-col gap-2">
@@ -206,10 +231,11 @@ const ScriptDetail = () => {
           </TabsContent>
           
           <TabsContent value="history" className="mt-6">
-            <ScriptExecutionHistory 
-              executions={executions} 
-              onRerun={handleRerun}
+            <ScriptExecutionHistory
+              executions={executions}
               isLoading={executionsLoading}
+              onRerun={handleRerun}
+              scriptId={id}
             />
           </TabsContent>
           
@@ -217,6 +243,13 @@ const ScriptDetail = () => {
             <ScriptCodeViewer script={script} />
           </TabsContent>
         </Tabs>
+
+        <DeleteScriptModal
+          scriptName={script.name}
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDeleteScript}
+        />
       </div>
     </AppLayout>
   );

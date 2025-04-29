@@ -58,6 +58,7 @@ export interface AppConfig {
     showCategories?: boolean;
     showRecent?: boolean;
   };
+  editor?: string;
 }
 
 export interface CategoryResponse {
