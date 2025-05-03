@@ -43,6 +43,9 @@ type ExecuteRequest struct {
 	Args    []string          `json:"args"`
 	Env     map[string]string `json:"env"`
 	Command string            `json:"command"`
+	Backoff int               `json:"backoff"` // milliseconds
+	Repeat  int               `json:"repeat"`  // number of times to repeat execution
+	Retry   int               `json:"retry"`   // number of retries on failure
 }
 
 func loadScriptsHandler(c *gin.Context) {
@@ -186,6 +189,17 @@ func execScriptHandler(c *gin.Context) {
 		return
 	}
 
+	// Set default values if not provided
+	if req.Backoff == 0 {
+		req.Backoff = 500 // default 500ms backoff
+	}
+	if req.Repeat == 0 {
+		req.Repeat = 1 // default to 1 execution
+	}
+	if req.Retry < 0 {
+		req.Retry = 0 // ensure retry is not negative
+	}
+
 	log.Printf("execScriptHandler: user request: %+v", req)
 
 	args := append([]string{script.Path}, req.Args...)
@@ -206,41 +220,84 @@ func execScriptHandler(c *gin.Context) {
 
 	// Split the command into parts if it contains spaces
 	commandParts := strings.Fields(req.Command)
-	cmd := exec.Command(commandParts[0], append(commandParts[1:], args...)...)
-	cmd.Env = os.Environ()
 
-	for k, v := range req.Env {
-		cmd.Env = append(cmd.Env, k+"="+v)
-	}
-	var stdoutBuf, stderrBuf strings.Builder
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
-	executedAt := time.Now()
-	if err := cmd.Start(); err != nil {
-		log.Printf("Error starting command: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start script"})
-		return
-	}
-	waitErr := cmd.Wait()
-	if waitErr != nil {
-		log.Printf("Error executing command: %v", waitErr)
-	}
-	output := stdoutBuf.String() + stderrBuf.String() // Combine stdout and stderr
-	c.String(http.StatusOK, output)                   // Stream the output to the client
+	// Function to execute a single run with retries
+	executeWithRetry := func() (string, int, error) {
+		var lastErr error
+		var output string
+		var exitCode int
 
-	req.Args = args
+		for attempt := 0; attempt <= req.Retry; attempt++ {
+			cmd := exec.Command(commandParts[0], append(commandParts[1:], args...)...)
+			cmd.Env = os.Environ()
 
-	exitCode := 0
-	if waitErr != nil {
-		if exitErr, ok := waitErr.(*exec.ExitError); ok {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
+			for k, v := range req.Env {
+				cmd.Env = append(cmd.Env, k+"="+v)
+			}
+
+			var stdoutBuf, stderrBuf strings.Builder
+			cmd.Stdout = &stdoutBuf
+			cmd.Stderr = &stderrBuf
+
+			if err := cmd.Start(); err != nil {
+				lastErr = err
+				if attempt < req.Retry {
+					time.Sleep(time.Duration(req.Backoff) * time.Millisecond)
+					continue
+				}
+				return "", -1, err
+			}
+
+			waitErr := cmd.Wait()
+			output = stdoutBuf.String() + stderrBuf.String()
+
+			if waitErr != nil {
+				if exitErr, ok := waitErr.(*exec.ExitError); ok {
+					exitCode = exitErr.ExitCode()
+				} else {
+					exitCode = -1
+				}
+				lastErr = waitErr
+				if attempt < req.Retry {
+					time.Sleep(time.Duration(req.Backoff) * time.Millisecond)
+					continue
+				}
+				return output, exitCode, waitErr
+			}
+
+			if cmd.ProcessState != nil {
+				exitCode = cmd.ProcessState.ExitCode()
+			}
+			return output, exitCode, nil
 		}
-	} else if cmd.ProcessState != nil {
-		exitCode = cmd.ProcessState.ExitCode()
+		return output, exitCode, lastErr
 	}
 
+	// Execute the script multiple times if requested
+	var allOutputs []string
+	var allExitCodes []int
+
+	for i := 0; i < req.Repeat; i++ {
+		if i > 0 {
+			time.Sleep(time.Duration(req.Backoff) * time.Millisecond)
+		}
+
+		output, exitCode, err := executeWithRetry()
+		allOutputs = append(allOutputs, output)
+		allExitCodes = append(allExitCodes, exitCode)
+
+		if err != nil && i < req.Repeat-1 {
+			time.Sleep(time.Duration(req.Backoff) * time.Millisecond)
+		}
+	}
+
+	// Combine all outputs
+	combinedOutput := strings.Join(allOutputs, "\n")
+
+	// Stream the output to the client
+	c.String(http.StatusOK, combinedOutput)
+
+	// Save execution history
 	incognito := c.Query("incognito") == "true"
 
 	if incognito {
@@ -254,17 +311,18 @@ func execScriptHandler(c *gin.Context) {
 		}
 		req.Args = maskedArgs
 		req.Env = maskedEnv
-		output = "*****"
+		combinedOutput = "*****"
 	}
 
+	// Save the last execution's details
 	storage.SaveExecutionHistory(&ExecutionHistory{
 		ID:             uuid.New().String(),
 		ScriptID:       id,
-		ExecutedAt:     executedAt,
+		ExecutedAt:     time.Now(),
 		FinishedAt:     time.Now(),
 		ExecuteRequest: req,
-		Output:         output,
-		ExitCode:       exitCode,
+		Output:         combinedOutput,
+		ExitCode:       allExitCodes[len(allExitCodes)-1],
 		Incognito:      incognito,
 		Command:        req.Command,
 	})
