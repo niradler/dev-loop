@@ -201,7 +201,7 @@ func execScriptHandler(c *gin.Context) {
 	}
 
 	log.Printf("execScriptHandler: user request: %+v", req)
-
+	executedAt := time.Now()
 	args := append([]string{script.Path}, req.Args...)
 
 	// Load config and add environment variables from config if present
@@ -318,7 +318,7 @@ func execScriptHandler(c *gin.Context) {
 	storage.SaveExecutionHistory(&ExecutionHistory{
 		ID:             uuid.New().String(),
 		ScriptID:       id,
-		ExecutedAt:     time.Now(),
+		ExecutedAt:     executedAt,
 		FinishedAt:     time.Now(),
 		ExecuteRequest: req,
 		Output:         combinedOutput,
